@@ -144,17 +144,26 @@ export default function Game() {
     );
   }
 
+  const slotCount = room.board.slots.length;
+  const getGridColsClass = () => {
+    if (slotCount <= 16) return "grid-cols-4 sm:grid-cols-5";
+    if (slotCount <= 24) return "grid-cols-4 sm:grid-cols-6";
+    if (slotCount <= 30) return "grid-cols-5 sm:grid-cols-6";
+    if (slotCount <= 42) return "grid-cols-6 sm:grid-cols-7";
+    return "grid-cols-7 sm:grid-cols-8";
+  };
+
   return (
-    <div className="min-h-screen bg-neutral-100 pb-6 flex flex-col">
+    <div className="min-h-screen bg-neutral-100 pb-4 flex flex-col">
       <header className="bg-white border-b border-neutral-200 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-4xl mx-auto px-2 sm:px-4 h-14 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-2 sm:px-4 h-12 flex items-center justify-between">
           <div className="flex items-center gap-1 sm:gap-2">
             <button onClick={() => navigate('/')} className="p-2 -ml-2 text-neutral-500 hover:text-neutral-900">
               <ArrowLeft size={20} />
             </button>
             <div className="flex flex-col">
               <span className="text-[10px] font-bold text-neutral-400 uppercase leading-tight">Room {roomId}</span>
-              <span className="text-sm font-medium leading-tight">{room.board.name}</span>
+              <span className="text-sm font-medium leading-tight truncate max-w-[150px] sm:max-w-xs">{room.board.name}</span>
             </div>
           </div>
           
@@ -179,11 +188,11 @@ export default function Game() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-4xl mx-auto w-full p-2 flex flex-col gap-3">
+      <main className="flex-1 max-w-4xl mx-auto w-full p-2 flex flex-col gap-2">
         {/* Secret Character Card */}
         <div className="flex justify-center mt-1">
           <div 
-            className="w-20 h-20 sm:w-28 sm:h-28 perspective-1000 cursor-pointer"
+            className="w-16 h-20 sm:w-24 sm:h-32 perspective-1000 cursor-pointer"
             onClick={() => setShowCharacter(!showCharacter)}
           >
             <motion.div
@@ -191,22 +200,22 @@ export default function Game() {
               animate={{ rotateY: showCharacter ? 180 : 0 }}
             >
               {/* Front (Hidden) */}
-              <div className="absolute inset-0 backface-hidden bg-indigo-600 rounded-2xl shadow-md border-2 border-white flex flex-col items-center justify-center text-white p-1 text-center">
-                <span className="text-2xl mb-0.5">?</span>
-                <span className="text-[9px] font-bold uppercase tracking-wider leading-tight">Your<br/>Card</span>
+              <div className="absolute inset-0 backface-hidden bg-indigo-600 rounded-xl shadow-md border-2 border-white flex flex-col items-center justify-center text-white p-1 text-center">
+                <span className="text-xl sm:text-2xl mb-0.5">?</span>
+                <span className="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider leading-tight">Your<br/>Card</span>
               </div>
               
               {/* Back (Revealed) */}
-              <div className="absolute inset-0 backface-hidden bg-white rounded-2xl shadow-md border-2 border-indigo-500 overflow-hidden flex flex-col rotate-y-180">
+              <div className="absolute inset-0 backface-hidden bg-white rounded-xl shadow-md border-2 border-indigo-500 overflow-hidden flex flex-col rotate-y-180">
                 {myCharacter?.image ? (
                   <img src={myCharacter.image} alt={myCharacter.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="flex-1 bg-neutral-100 flex items-center justify-center text-neutral-400 text-xs">
+                  <div className="flex-1 bg-neutral-100 flex items-center justify-center text-neutral-400 text-[10px]">
                     No Image
                   </div>
                 )}
                 {myCharacter?.name && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] font-bold text-center py-0.5 truncate px-1">
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[9px] sm:text-xs font-bold text-center py-0.5 truncate px-1">
                     {myCharacter.name}
                   </div>
                 )}
@@ -216,8 +225,8 @@ export default function Game() {
         </div>
 
         {/* Game Board */}
-        <div className="bg-white p-1.5 sm:p-4 rounded-2xl shadow-sm border border-neutral-200 flex-1 flex flex-col justify-center">
-          <div className="grid grid-cols-7 gap-1 sm:gap-2 w-full max-w-full mx-auto">
+        <div className="bg-white p-1.5 sm:p-4 rounded-2xl shadow-sm border border-neutral-200 flex-1 flex flex-col">
+          <div className={`grid ${getGridColsClass()} gap-1 sm:gap-2 w-full max-w-full mx-auto`}>
             {room.board.slots.map((slot: BoardSlot) => (
               <button
                 key={slot.id}
@@ -227,7 +236,7 @@ export default function Game() {
                 onPointerCancel={handlePointerLeave}
                 onClick={() => handleClick(slot)}
                 onContextMenu={handleContextMenu}
-                className="relative aspect-square rounded-lg sm:rounded-xl overflow-hidden border border-neutral-200 transition-all touch-none select-none"
+                className="relative aspect-[3/4] rounded-lg sm:rounded-xl overflow-hidden border border-neutral-200 transition-all touch-none select-none"
               >
                 {slot.image ? (
                   <img 
@@ -241,7 +250,7 @@ export default function Game() {
                 )}
                 
                 {slot.name && (
-                  <div className={`absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[9px] sm:text-[11px] font-medium truncate px-0.5 py-0.5 text-center transition-all duration-300 ${eliminated.has(slot.id) ? 'opacity-30' : ''}`}>
+                  <div className={`absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] sm:text-xs font-medium truncate px-0.5 py-0.5 text-center transition-all duration-300 ${eliminated.has(slot.id) ? 'opacity-30' : ''}`}>
                     {slot.name}
                   </div>
                 )}
@@ -281,9 +290,9 @@ export default function Game() {
               className="bg-white rounded-3xl overflow-hidden shadow-2xl max-w-sm w-full border-4 border-white"
             >
               {zoomedSlot.image ? (
-                <img src={zoomedSlot.image} alt={zoomedSlot.name} className="w-full aspect-square object-cover" />
+                <img src={zoomedSlot.image} alt={zoomedSlot.name} className="w-full aspect-[3/4] object-cover" />
               ) : (
-                <div className="w-full aspect-square bg-neutral-100 flex items-center justify-center text-neutral-400">
+                <div className="w-full aspect-[3/4] bg-neutral-100 flex items-center justify-center text-neutral-400">
                   No Image
                 </div>
               )}
