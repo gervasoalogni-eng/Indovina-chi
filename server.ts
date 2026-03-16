@@ -29,6 +29,7 @@ async function startServer() {
     socket.on("createRoom", (data) => {
       const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
       rooms.set(roomId, {
+        roomId,
         host: socket.id,
         board: data.board,
         players: [{ id: socket.id, name: data.playerName, isHost: true }],
