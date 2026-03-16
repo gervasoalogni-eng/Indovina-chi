@@ -1,0 +1,5 @@
+{
+  "name": "Guess Who Custom Edition",
+  "description": "A mobile-first multiplayer web app inspired by Guess Who?, allowing users to create custom character boards and play together in real-time.",
+  "requestFramePermissions": []
+}
