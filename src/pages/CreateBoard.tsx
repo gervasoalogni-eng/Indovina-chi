@@ -1,9 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Upload, X, PlusCircle, Images, Loader2 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { ArrowLeft, Save, Upload, X, PlusCircle, Images, Loader2, Check, Crop } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import Cropper from 'react-easy-crop';
 import { saveBoard, BoardSlot } from '../lib/db';
 import { resizeImage } from '../lib/imageUtils';
+import getCroppedImg from '../lib/cropImage';
 
 const RANDOM_NAMES = [
   "Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Jamie", "Charlie", "Quinn", "Avery",
@@ -21,6 +23,13 @@ export default function CreateBoard() {
   );
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Cropper state
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bulkInputRef = useRef<HTMLInputElement>(null);
 
@@ -56,11 +65,42 @@ export default function CreateBoard() {
     if (selectedSlot === null || !e.target.files || e.target.files.length === 0) return;
     
     const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropImageSrc(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input so the same file can be selected again if needed
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const handleConfirmCrop = async () => {
+    if (!cropImageSrc || !croppedAreaPixels || selectedSlot === null) return;
+    
     try {
+      setIsLoading(true);
+      const croppedImageBase64 = await getCroppedImg(cropImageSrc, croppedAreaPixels);
+      
+      // Convert base64 back to file for resizeImage to keep it consistent and small
+      const res = await fetch(croppedImageBase64);
+      const blob = await res.blob();
+      const file = new File([blob], "cropped.jpg", { type: "image/jpeg" });
+      
       const resizedImage = await resizeImage(file);
       setSlots(prev => prev.map(s => s.id === selectedSlot ? { ...s, image: resizedImage } : s));
+      setCropImageSrc(null);
     } catch (error) {
-      console.error("Error resizing image", error);
+      console.error("Error cropping image", error);
+      alert("Failed to crop image");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -134,12 +174,12 @@ export default function CreateBoard() {
         {/* Grid Preview */}
         <div className="flex-1">
           <div className="bg-white p-4 rounded-2xl shadow-sm border border-neutral-200">
-            <div className="grid grid-cols-7 gap-1 sm:gap-2 aspect-square">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {slots.map((slot) => (
                 <button
                   key={slot.id}
                   onClick={() => setSelectedSlot(slot.id)}
-                  className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${
+                  className={`relative aspect-[3/4] rounded-md overflow-hidden border-2 transition-all ${
                     selectedSlot === slot.id ? 'border-indigo-500 shadow-md scale-105 z-10' : 'border-neutral-200 hover:border-indigo-300'
                   }`}
                 >
@@ -178,7 +218,7 @@ export default function CreateBoard() {
                 className="space-y-4"
               >
                 <div 
-                  className="aspect-square w-full max-w-[200px] mx-auto bg-neutral-100 rounded-xl border-2 border-dashed border-neutral-300 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-50 overflow-hidden relative"
+                  className="aspect-[3/4] w-full max-w-[200px] mx-auto bg-neutral-100 rounded-xl border-2 border-dashed border-neutral-300 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-50 overflow-hidden relative"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {slots[selectedSlot].image ? (
@@ -215,19 +255,88 @@ export default function CreateBoard() {
                 </div>
 
                 {slots[selectedSlot].image && (
-                  <button 
-                    onClick={() => setSlots(prev => prev.map(s => s.id === selectedSlot ? { ...s, image: null, name: '' } : s))}
-                    className="w-full flex items-center justify-center gap-2 text-red-500 font-medium py-2 hover:bg-red-50 rounded-xl transition-colors"
-                  >
-                    <X size={18} />
-                    Clear Slot
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setCropImageSrc(slots[selectedSlot].image!)}
+                      className="flex-1 flex items-center justify-center gap-2 text-indigo-600 font-medium py-2 hover:bg-indigo-50 rounded-xl transition-colors border border-indigo-100"
+                    >
+                      <Crop size={18} />
+                      Adjust
+                    </button>
+                    <button 
+                      onClick={() => setSlots(prev => prev.map(s => s.id === selectedSlot ? { ...s, image: null, name: '' } : s))}
+                      className="flex-1 flex items-center justify-center gap-2 text-red-500 font-medium py-2 hover:bg-red-50 rounded-xl transition-colors border border-red-100"
+                    >
+                      <X size={18} />
+                      Clear
+                    </button>
+                  </div>
                 )}
               </motion.div>
             )}
           </div>
         </div>
       </main>
+
+      {/* Crop Modal */}
+      <AnimatePresence>
+        {cropImageSrc && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex flex-col bg-black"
+          >
+            <div className="flex items-center justify-between p-4 bg-black/50 text-white z-10">
+              <button 
+                onClick={() => setCropImageSrc(null)}
+                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+              >
+                <X size={24} />
+              </button>
+              <h3 className="font-bold text-lg">Adjust Image</h3>
+              <button 
+                onClick={handleConfirmCrop}
+                disabled={isLoading}
+                className="flex items-center gap-2 bg-indigo-600 px-4 py-2 rounded-full font-bold hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                Save
+              </button>
+            </div>
+            
+            <div className="flex-1 relative">
+              <Cropper
+                image={cropImageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={3 / 4}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+                objectFit="vertical-cover"
+              />
+            </div>
+            
+            <div className="p-6 bg-black/50 z-10">
+              <div className="max-w-md mx-auto flex items-center gap-4">
+                <span className="text-white text-sm">Zoom</span>
+                <input
+                  type="range"
+                  value={zoom}
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  aria-labelledby="Zoom"
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-full accent-indigo-500"
+                />
+              </div>
+              <p className="text-center text-white/50 text-xs mt-4">Pinch or drag to adjust the image</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
