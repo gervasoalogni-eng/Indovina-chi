@@ -23,6 +23,7 @@ export default function CreateBoard() {
   );
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [originalImages, setOriginalImages] = useState<Record<number, string>>({});
   
   // Cropper state
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
@@ -40,6 +41,7 @@ export default function CreateBoard() {
     
     try {
       const processedImages = await Promise.all(files.map((f: File) => resizeImage(f)));
+      const newOriginals: Record<number, string> = {};
       
       setSlots(prev => {
         const next = [...prev];
@@ -48,11 +50,13 @@ export default function CreateBoard() {
           if (imgIdx < processedImages.length) {
             const randomName = RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
             next[i] = { ...next[i], image: processedImages[imgIdx], name: randomName };
+            newOriginals[i] = URL.createObjectURL(files[imgIdx]);
             imgIdx++;
           }
         }
         return next;
       });
+      setOriginalImages(prev => ({ ...prev, ...newOriginals }));
     } catch (error) {
       console.error("Bulk upload error", error);
       alert("Error processing images");
@@ -65,11 +69,10 @@ export default function CreateBoard() {
     if (selectedSlot === null || !e.target.files || e.target.files.length === 0) return;
     
     const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onload = () => {
-      setCropImageSrc(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    const url = URL.createObjectURL(file);
+    
+    setOriginalImages(prev => ({ ...prev, [selectedSlot]: url }));
+    setCropImageSrc(url);
     
     // Reset input so the same file can be selected again if needed
     if (fileInputRef.current) {
@@ -257,14 +260,21 @@ export default function CreateBoard() {
                 {slots[selectedSlot].image && (
                   <div className="flex gap-2">
                     <button 
-                      onClick={() => setCropImageSrc(slots[selectedSlot].image!)}
+                      onClick={() => setCropImageSrc(originalImages[selectedSlot] || slots[selectedSlot].image!)}
                       className="flex-1 flex items-center justify-center gap-2 text-indigo-600 font-medium py-2 hover:bg-indigo-50 rounded-xl transition-colors border border-indigo-100"
                     >
                       <Crop size={18} />
                       Adjust
                     </button>
                     <button 
-                      onClick={() => setSlots(prev => prev.map(s => s.id === selectedSlot ? { ...s, image: null, name: '' } : s))}
+                      onClick={() => {
+                        setSlots(prev => prev.map(s => s.id === selectedSlot ? { ...s, image: null, name: '' } : s));
+                        setOriginalImages(prev => {
+                          const next = { ...prev };
+                          delete next[selectedSlot];
+                          return next;
+                        });
+                      }}
                       className="flex-1 flex items-center justify-center gap-2 text-red-500 font-medium py-2 hover:bg-red-50 rounded-xl transition-colors border border-red-100"
                     >
                       <X size={18} />
@@ -314,7 +324,6 @@ export default function CreateBoard() {
                 onCropChange={setCrop}
                 onCropComplete={onCropComplete}
                 onZoomChange={setZoom}
-                objectFit="vertical-cover"
               />
             </div>
             
