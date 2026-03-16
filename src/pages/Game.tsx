@@ -14,11 +14,11 @@ export default function Game() {
   
   const isHost = room?.host === socket.id;
   
-  const [eliminated, setEliminated] = useState<Set<number>>(new Set());
+  const [eliminated, setEliminated] = useState<Set<number | string>>(new Set());
   const [showCharacter, setShowCharacter] = useState(false);
   const [myCharacter, setMyCharacter] = useState<BoardSlot | null>(null);
   
-  const [zoomedSlot, setZoomedSlot] = useState<BoardSlot | null>(null);
+  const [zoomedSlot, setZoomedSlot] = useState<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isLongPressRef = useRef(false);
 
@@ -53,7 +53,7 @@ export default function Game() {
     };
   }, [navigate, room]);
 
-  const toggleEliminated = (id: number) => {
+  const toggleEliminated = (id: number | string) => {
     setEliminated(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -75,7 +75,7 @@ export default function Game() {
     }
   };
 
-  const handlePointerDown = (slot: BoardSlot) => {
+  const handlePointerDown = (slot: any) => {
     isLongPressRef.current = false;
     timerRef.current = setTimeout(() => {
       isLongPressRef.current = true;
@@ -101,7 +101,7 @@ export default function Game() {
     }
   };
 
-  const handleClick = (slot: BoardSlot) => {
+  const handleClick = (slot: any) => {
     if (!isLongPressRef.current) {
       toggleEliminated(slot.id);
     }
@@ -144,17 +144,15 @@ export default function Game() {
     );
   }
 
-  const slotCount = room.board.slots.length;
-  const getGridColsClass = () => {
-    if (slotCount <= 16) return "grid-cols-4 sm:grid-cols-5";
-    if (slotCount <= 24) return "grid-cols-4 sm:grid-cols-6";
-    if (slotCount <= 30) return "grid-cols-5 sm:grid-cols-6";
-    if (slotCount <= 42) return "grid-cols-6 sm:grid-cols-7";
-    return "grid-cols-7 sm:grid-cols-8";
-  };
+  // Ensure we always have 49 slots to render a perfect 7x7 grid
+  const displaySlots = [...room.board.slots];
+  while (displaySlots.length < 49) {
+    displaySlots.push({ id: `empty-${displaySlots.length}`, name: '', image: '' });
+  }
+  const finalSlots = displaySlots.slice(0, 49);
 
   return (
-    <div className="min-h-screen bg-neutral-100 pb-4 flex flex-col">
+    <div className="min-h-screen bg-neutral-100 pb-2 flex flex-col">
       <header className="bg-white border-b border-neutral-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-4xl mx-auto px-2 sm:px-4 h-12 flex items-center justify-between">
           <div className="flex items-center gap-1 sm:gap-2">
@@ -188,11 +186,11 @@ export default function Game() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-4xl mx-auto w-full p-2 flex flex-col gap-2">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-1 py-2 flex flex-col gap-2">
         {/* Secret Character Card */}
         <div className="flex justify-center mt-1">
           <div 
-            className="w-16 h-20 sm:w-24 sm:h-32 perspective-1000 cursor-pointer"
+            className="w-14 h-20 sm:w-24 sm:h-32 perspective-1000 cursor-pointer"
             onClick={() => setShowCharacter(!showCharacter)}
           >
             <motion.div
@@ -225,9 +223,9 @@ export default function Game() {
         </div>
 
         {/* Game Board */}
-        <div className="bg-white p-1.5 sm:p-4 rounded-2xl shadow-sm border border-neutral-200 flex-1 flex flex-col">
-          <div className={`grid ${getGridColsClass()} gap-1 sm:gap-2 w-full max-w-full mx-auto`}>
-            {room.board.slots.map((slot: BoardSlot) => (
+        <div className="bg-white p-1 sm:p-4 rounded-xl shadow-sm border border-neutral-200 flex-1 flex flex-col">
+          <div className="grid grid-cols-7 gap-0.5 sm:gap-2 w-full max-w-full mx-auto">
+            {finalSlots.map((slot: any) => (
               <button
                 key={slot.id}
                 onPointerDown={() => handlePointerDown(slot)}
@@ -236,7 +234,7 @@ export default function Game() {
                 onPointerCancel={handlePointerLeave}
                 onClick={() => handleClick(slot)}
                 onContextMenu={handleContextMenu}
-                className="relative aspect-[3/4] rounded-lg sm:rounded-xl overflow-hidden border border-neutral-200 transition-all touch-none select-none"
+                className="relative aspect-[3/4] rounded-md sm:rounded-xl overflow-hidden border border-neutral-200 transition-all touch-none select-none"
               >
                 {slot.image ? (
                   <img 
@@ -250,7 +248,7 @@ export default function Game() {
                 )}
                 
                 {slot.name && (
-                  <div className={`absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] sm:text-xs font-medium truncate px-0.5 py-0.5 text-center transition-all duration-300 ${eliminated.has(slot.id) ? 'opacity-30' : ''}`}>
+                  <div className={`absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[8px] sm:text-xs font-medium truncate px-0.5 py-0.5 text-center transition-all duration-300 ${eliminated.has(slot.id) ? 'opacity-30' : ''}`}>
                     {slot.name}
                   </div>
                 )}

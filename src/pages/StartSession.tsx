@@ -105,14 +105,13 @@ export default function StartSession() {
 
           <button 
             onClick={handleStartGame}
-            disabled={room.players.length < 2}
             className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
           >
             <Play size={20} />
             Start Game
           </button>
           {room.players.length < 2 && (
-            <p className="text-xs text-neutral-500 mt-3">Waiting for at least 1 more player...</p>
+            <p className="text-xs text-neutral-500 mt-3">You can start the game alone for testing.</p>
           )}
         </motion.div>
       </div>
