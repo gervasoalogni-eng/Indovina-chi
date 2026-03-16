@@ -1,9 +1,9 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Upload, X, PlusCircle, Images, Loader2, Check, Crop } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Cropper from 'react-easy-crop';
-import { saveBoard, BoardSlot } from '../lib/db';
+import { saveBoard, getBoard, BoardSlot } from '../lib/db';
 import { resizeImage } from '../lib/imageUtils';
 import getCroppedImg from '../lib/cropImage';
 
@@ -17,13 +17,37 @@ const RANDOM_NAMES = [
 
 export default function CreateBoard() {
   const navigate = useNavigate();
+  const { boardId } = useParams<{ boardId: string }>();
   const [boardName, setBoardName] = useState('');
   const [slots, setSlots] = useState<BoardSlot[]>(
     Array.from({ length: 49 }, (_, i) => ({ id: i, image: null, name: '' }))
   );
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(!!boardId);
   const [originalImages, setOriginalImages] = useState<Record<number, string>>({});
+  
+  useEffect(() => {
+    if (boardId) {
+      const loadBoard = async () => {
+        try {
+          const board = await getBoard(boardId);
+          if (board) {
+            setBoardName(board.name);
+            setSlots(board.slots);
+          } else {
+            alert("Board not found");
+            navigate('/start');
+          }
+        } catch (error) {
+          console.error("Error loading board", error);
+        } finally {
+          setIsInitialLoading(false);
+        }
+      };
+      loadBoard();
+    }
+  }, [boardId, navigate]);
   
   // Cropper state
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
@@ -124,15 +148,23 @@ export default function CreateBoard() {
     }
 
     const newBoard = {
-      id: Math.random().toString(36).substring(2, 9),
+      id: boardId || Math.random().toString(36).substring(2, 9),
       name: boardName,
       slots,
-      createdAt: Date.now()
+      createdAt: boardId ? (await getBoard(boardId))?.createdAt || Date.now() : Date.now()
     };
 
     await saveBoard(newBoard);
-    navigate('/');
+    navigate('/start');
   };
+
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen bg-neutral-100 flex items-center justify-center">
+        <Loader2 size={48} className="animate-spin text-indigo-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-100 pb-24">

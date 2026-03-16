@@ -17,6 +17,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/create" element={<CreateBoard />} />
+          <Route path="/edit/:boardId" element={<CreateBoard />} />
           <Route path="/start" element={<StartSession />} />
           <Route path="/join" element={<JoinSession />} />
           <Route path="/game/:roomId" element={<Game />} />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Play, Trash2, Users } from 'lucide-react';
+import { ArrowLeft, Play, Trash2, Users, Edit } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { motion } from 'motion/react';
 import { getAllBoards, deleteBoard, Board } from '../lib/db';
@@ -167,12 +167,22 @@ export default function StartSession() {
               >
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-bold text-lg">{board.name}</h3>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleDelete(board.id); }}
-                    className="text-neutral-400 hover:text-red-500 p-1"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  <div className="flex gap-1">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); navigate(`/edit/${board.id}`); }}
+                      className="text-neutral-400 hover:text-indigo-600 p-1"
+                      title="Edit Board"
+                    >
+                      <Edit size={18} />
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleDelete(board.id); }}
+                      className="text-neutral-400 hover:text-red-500 p-1"
+                      title="Delete Board"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-sm text-neutral-500">
                   {board.slots.filter(s => s.image).length} characters
