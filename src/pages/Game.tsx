@@ -152,8 +152,8 @@ export default function Game() {
   const finalSlots = displaySlots.slice(0, 49);
 
   return (
-    <div className="min-h-screen bg-neutral-100 pb-2 flex flex-col">
-      <header className="bg-white border-b border-neutral-200 sticky top-0 z-20 shadow-sm">
+    <div className="h-[100dvh] bg-neutral-100 pb-1 flex flex-col overflow-hidden">
+      <header className="bg-white border-b border-neutral-200 shrink-0 z-20 shadow-sm">
         <div className="max-w-4xl mx-auto px-2 sm:px-4 h-12 flex items-center justify-between">
           <div className="flex items-center gap-1 sm:gap-2">
             <button onClick={() => navigate('/')} className="p-2 -ml-2 text-neutral-500 hover:text-neutral-900">
@@ -186,11 +186,11 @@ export default function Game() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-4xl mx-auto w-full px-1 py-2 flex flex-col gap-2">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-1 py-1 flex flex-col gap-1 min-h-0">
         {/* Secret Character Card */}
-        <div className="flex justify-center mt-1">
+        <div className="flex justify-center shrink-0">
           <div 
-            className="w-14 h-20 sm:w-24 sm:h-32 perspective-1000 cursor-pointer"
+            className="w-12 h-16 sm:w-24 sm:h-32 perspective-1000 cursor-pointer"
             onClick={() => setShowCharacter(!showCharacter)}
           >
             <motion.div
@@ -199,8 +199,8 @@ export default function Game() {
             >
               {/* Front (Hidden) */}
               <div className="absolute inset-0 backface-hidden bg-indigo-600 rounded-xl shadow-md border-2 border-white flex flex-col items-center justify-center text-white p-1 text-center">
-                <span className="text-xl sm:text-2xl mb-0.5">?</span>
-                <span className="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider leading-tight">Your<br/>Card</span>
+                <span className="text-lg sm:text-2xl mb-0.5">?</span>
+                <span className="text-[7px] sm:text-[10px] font-bold uppercase tracking-wider leading-tight">Your<br/>Card</span>
               </div>
               
               {/* Back (Revealed) */}
@@ -223,8 +223,8 @@ export default function Game() {
         </div>
 
         {/* Game Board */}
-        <div className="bg-white p-1 sm:p-4 rounded-xl shadow-sm border border-neutral-200 flex-1 flex flex-col">
-          <div className="grid grid-cols-7 gap-0.5 sm:gap-2 w-full max-w-full mx-auto">
+        <div className="bg-white p-1 sm:p-4 rounded-xl shadow-sm border border-neutral-200 flex-1 flex flex-col min-h-0">
+          <div className="grid grid-cols-7 grid-rows-7 gap-0.5 sm:gap-2 w-full h-full max-w-full mx-auto">
             {finalSlots.map((slot: any) => (
               <button
                 key={slot.id}
@@ -234,7 +234,7 @@ export default function Game() {
                 onPointerCancel={handlePointerLeave}
                 onClick={() => handleClick(slot)}
                 onContextMenu={handleContextMenu}
-                className="relative aspect-[3/4] rounded-md sm:rounded-xl overflow-hidden border border-neutral-200 transition-all touch-none select-none"
+                className="relative w-full h-full rounded-md sm:rounded-xl overflow-hidden border border-neutral-200 transition-all touch-none select-none"
               >
                 {slot.image ? (
                   <img 
