@@ -6,6 +6,7 @@ import Cropper from 'react-easy-crop';
 import { saveBoard, getBoard, BoardSlot } from '../lib/db';
 import { resizeImage } from '../lib/imageUtils';
 import getCroppedImg from '../lib/cropImage';
+import { useAuth } from '../AuthContext';
 
 const RANDOM_NAMES = [
   "Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Jamie", "Charlie", "Quinn", "Avery",
@@ -18,6 +19,7 @@ const RANDOM_NAMES = [
 export default function CreateBoard() {
   const navigate = useNavigate();
   const { boardId } = useParams<{ boardId: string }>();
+  const { user, loading } = useAuth();
   const [boardName, setBoardName] = useState('');
   const [slots, setSlots] = useState<BoardSlot[]>(
     Array.from({ length: 49 }, (_, i) => ({ id: i, image: null, name: '' }))
@@ -28,7 +30,12 @@ export default function CreateBoard() {
   const [originalImages, setOriginalImages] = useState<Record<number, string>>({});
   
   useEffect(() => {
-    if (boardId) {
+    if (!loading && !user) {
+      navigate('/');
+      return;
+    }
+
+    if (boardId && user) {
       const loadBoard = async () => {
         try {
           const board = await getBoard(boardId);

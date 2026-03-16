@@ -9,20 +9,23 @@ import CreateBoard from './pages/CreateBoard';
 import StartSession from './pages/StartSession';
 import JoinSession from './pages/JoinSession';
 import Game from './pages/Game';
+import { AuthProvider } from './AuthContext';
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-neutral-100 text-neutral-900 font-sans">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/create" element={<CreateBoard />} />
-          <Route path="/edit/:boardId" element={<CreateBoard />} />
-          <Route path="/start" element={<StartSession />} />
-          <Route path="/join" element={<JoinSession />} />
-          <Route path="/game/:roomId" element={<Game />} />
-        </Routes>
-      </div>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="min-h-screen bg-neutral-100 text-neutral-900 font-sans">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/create" element={<CreateBoard />} />
+            <Route path="/edit/:boardId" element={<CreateBoard />} />
+            <Route path="/start" element={<StartSession />} />
+            <Route path="/join" element={<JoinSession />} />
+            <Route path="/game/:roomId" element={<Game />} />
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }

@@ -1,8 +1,12 @@
 import { Link } from 'react-router-dom';
-import { Users, PlusCircle, LogIn, HelpCircle } from 'lucide-react';
+import { Users, PlusCircle, LogIn, HelpCircle, LogOut } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useAuth } from '../AuthContext';
+import { signInWithGoogle, logOut } from '../firebase';
 
 export default function Home() {
+  const { user, loading } = useAuth();
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-md mx-auto">
       <motion.div 
@@ -18,37 +22,53 @@ export default function Home() {
       </motion.div>
 
       <div className="w-full space-y-4">
-        <Link to="/create" className="block">
+        {!loading && !user && (
           <motion.button 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="w-full bg-white border-2 border-neutral-200 p-4 rounded-2xl flex items-center gap-4 hover:border-indigo-500 hover:shadow-md transition-all"
+            onClick={signInWithGoogle}
+            className="w-full bg-white border-2 border-indigo-200 p-4 rounded-2xl flex items-center justify-center gap-3 hover:border-indigo-500 hover:shadow-md transition-all text-indigo-600 font-bold"
           >
-            <div className="bg-emerald-100 text-emerald-600 p-3 rounded-xl">
-              <PlusCircle size={24} />
-            </div>
-            <div className="text-left">
-              <h2 className="font-bold text-lg">Create Board</h2>
-              <p className="text-sm text-neutral-500">Make a custom 7x7 character grid</p>
-            </div>
+            <LogIn size={20} />
+            Sign in with Google to Create Boards
           </motion.button>
-        </Link>
+        )}
 
-        <Link to="/start" className="block">
-          <motion.button 
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full bg-white border-2 border-neutral-200 p-4 rounded-2xl flex items-center gap-4 hover:border-indigo-500 hover:shadow-md transition-all"
-          >
-            <div className="bg-indigo-100 text-indigo-600 p-3 rounded-xl">
-              <Users size={24} />
-            </div>
-            <div className="text-left">
-              <h2 className="font-bold text-lg">Start Session</h2>
-              <p className="text-sm text-neutral-500">Host a game with a saved board</p>
-            </div>
-          </motion.button>
-        </Link>
+        {user && (
+          <>
+            <Link to="/create" className="block">
+              <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full bg-white border-2 border-neutral-200 p-4 rounded-2xl flex items-center gap-4 hover:border-indigo-500 hover:shadow-md transition-all"
+              >
+                <div className="bg-emerald-100 text-emerald-600 p-3 rounded-xl">
+                  <PlusCircle size={24} />
+                </div>
+                <div className="text-left">
+                  <h2 className="font-bold text-lg">Create Board</h2>
+                  <p className="text-sm text-neutral-500">Make a custom 7x7 character grid</p>
+                </div>
+              </motion.button>
+            </Link>
+
+            <Link to="/start" className="block">
+              <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full bg-white border-2 border-neutral-200 p-4 rounded-2xl flex items-center gap-4 hover:border-indigo-500 hover:shadow-md transition-all"
+              >
+                <div className="bg-indigo-100 text-indigo-600 p-3 rounded-xl">
+                  <Users size={24} />
+                </div>
+                <div className="text-left">
+                  <h2 className="font-bold text-lg">Start Session</h2>
+                  <p className="text-sm text-neutral-500">Host a game with a saved board</p>
+                </div>
+              </motion.button>
+            </Link>
+          </>
+        )}
 
         <Link to="/join" className="block">
           <motion.button 
@@ -65,6 +85,19 @@ export default function Home() {
             </div>
           </motion.button>
         </Link>
+        
+        {user && (
+          <div className="pt-8 text-center">
+            <p className="text-sm text-neutral-500 mb-2">Logged in as {user.email}</p>
+            <button 
+              onClick={logOut}
+              className="text-sm text-neutral-400 hover:text-neutral-700 flex items-center justify-center gap-1 mx-auto"
+            >
+              <LogOut size={14} />
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

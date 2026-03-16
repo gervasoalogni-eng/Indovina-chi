@@ -1,4 +1,5 @@
-import { get, set, keys, del } from 'idb-keyval';
+import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, where } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 
 export interface BoardSlot {
   id: number;
@@ -11,23 +12,41 @@ export interface Board {
   name: string;
   slots: BoardSlot[];
   createdAt: number;
+  authorUid: string;
 }
 
-export const saveBoard = async (board: Board) => {
-  await set(`board_${board.id}`, board);
+export const saveBoard = async (board: Omit<Board, 'authorUid'>) => {
+  if (!auth.currentUser) throw new Error("User not authenticated");
+  
+  const boardToSave: Board = {
+    ...board,
+    authorUid: auth.currentUser.uid
+  };
+  
+  await setDoc(doc(db, 'boards', board.id), boardToSave);
 };
 
 export const getBoard = async (id: string): Promise<Board | undefined> => {
-  return await get(`board_${id}`);
+  const docSnap = await getDoc(doc(db, 'boards', id));
+  if (docSnap.exists()) {
+    return docSnap.data() as Board;
+  }
+  return undefined;
 };
 
 export const getAllBoards = async (): Promise<Board[]> => {
-  const allKeys = await keys();
-  const boardKeys = allKeys.filter(key => typeof key === 'string' && key.startsWith('board_'));
-  const boards = await Promise.all(boardKeys.map(key => get(key as string)));
+  if (!auth.currentUser) return [];
+  
+  const q = query(collection(db, 'boards'), where('authorUid', '==', auth.currentUser.uid));
+  const querySnapshot = await getDocs(q);
+  const boards: Board[] = [];
+  querySnapshot.forEach((doc) => {
+    boards.push(doc.data() as Board);
+  });
+  
   return boards.sort((a, b) => b.createdAt - a.createdAt);
 };
 
 export const deleteBoard = async (id: string) => {
-  await del(`board_${id}`);
+  await deleteDoc(doc(db, 'boards', id));
 };

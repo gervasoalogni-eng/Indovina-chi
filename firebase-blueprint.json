@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "BoardSlot": {
+      "title": "BoardSlot",
+      "description": "A single slot on the game board",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number",
+          "description": "The slot index"
+        },
+        "image": {
+          "type": "string",
+          "description": "Base64 encoded image or URL"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the character"
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "Board": {
+      "title": "Board",
+      "description": "A custom Guess Who board",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique board ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the board"
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/entities/BoardSlot"
+          },
+          "description": "The 49 slots of the board"
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Creation timestamp"
+        },
+        "authorUid": {
+          "type": "string",
+          "description": "The UID of the user who created the board"
+        }
+      },
+      "required": ["id", "name", "slots", "createdAt", "authorUid"]
+    }
+  },
+  "firestore": {
+    "/boards/{boardId}": {
+      "schema": "Board",
+      "description": "Stores custom game boards created by users"
+    }
+  }
+}

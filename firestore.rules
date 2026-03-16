@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: boards
+    // Document ID: {boardId}
+    // Fields:
+    //   - id: string (required, length < 50)
+    //   - name: string (required, length < 100)
+    //   - slots: list (required, size <= 49)
+    //   - createdAt: number (required, immutable)
+    //   - authorUid: string (required, immutable)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.authorUid;
+    }
+
+    function uidUnchanged() {
+      return !('authorUid' in request.resource.data) ||
+        request.resource.data.authorUid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('authorUid' in request.resource.data) ||
+        request.resource.data.authorUid == resource.data.authorUid;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    function isValidBoard(data) {
+      return hasOnlyAllowedFields(['id', 'name', 'slots', 'createdAt', 'authorUid']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() < 50 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.slots is list && data.slots.size() <= 49 &&
+             data.createdAt is number &&
+             data.authorUid is string && data.authorUid.size() > 0 && data.authorUid.size() < 50;
+    }
+
+    match /boards/{boardId} {
+      // Anyone can read a board to play the game
+      allow get: if true; 
+      // Users can only list their own boards
+      allow list: if isAuthenticated() && request.auth.uid == resource.data.authorUid;
+      
+      allow create: if isAuthenticated() && 
+                    hasRequiredFields(['id', 'name', 'slots', 'createdAt', 'authorUid']) &&
+                    isValidBoard(request.resource.data) &&
+                    uidUnchanged();
+                    
+      allow update: if isAuthenticated() && 
+                    isDocOwner() &&
+                    isValidBoard(request.resource.data) &&
+                    uidNotModified() &&
+                    areImmutableFieldsUnchanged(['createdAt', 'authorUid', 'id']);
+                    
+      allow delete: if isAuthenticated() && isDocOwner();
+    }
+  }
+}

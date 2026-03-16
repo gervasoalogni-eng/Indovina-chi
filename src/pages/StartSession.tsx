@@ -5,16 +5,25 @@ import QRCode from 'react-qr-code';
 import { motion } from 'motion/react';
 import { getAllBoards, deleteBoard, Board } from '../lib/db';
 import { socket } from '../lib/socket';
+import { useAuth } from '../AuthContext';
 
 export default function StartSession() {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [boards, setBoards] = useState<Board[]>([]);
   const [selectedBoard, setSelectedBoard] = useState<Board | null>(null);
   const [playerName, setPlayerName] = useState('');
   const [room, setRoom] = useState<any>(null);
 
   useEffect(() => {
-    loadBoards();
+    if (!loading && !user) {
+      navigate('/');
+      return;
+    }
+    
+    if (user) {
+      loadBoards();
+    }
 
     socket.on('roomCreated', (data) => {
       setRoom(data.room);
