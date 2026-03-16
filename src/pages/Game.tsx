@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, RotateCcw, Users, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -17,6 +17,10 @@ export default function Game() {
   const [eliminated, setEliminated] = useState<Set<number>>(new Set());
   const [showCharacter, setShowCharacter] = useState(false);
   const [myCharacter, setMyCharacter] = useState<BoardSlot | null>(null);
+  
+  const [zoomedSlot, setZoomedSlot] = useState<BoardSlot | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressRef = useRef(false);
 
   useEffect(() => {
     if (!room) {
@@ -71,6 +75,43 @@ export default function Game() {
     }
   };
 
+  const handlePointerDown = (slot: BoardSlot) => {
+    isLongPressRef.current = false;
+    timerRef.current = setTimeout(() => {
+      isLongPressRef.current = true;
+      setZoomedSlot(slot);
+    }, 400); // 400ms for long press
+  };
+
+  const handlePointerUp = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    if (zoomedSlot) {
+      setZoomedSlot(null);
+    }
+  };
+
+  const handlePointerLeave = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    if (zoomedSlot) {
+      setZoomedSlot(null);
+    }
+  };
+
+  const handleClick = (slot: BoardSlot) => {
+    if (!isLongPressRef.current) {
+      toggleEliminated(slot.id);
+    }
+  };
+
+  // Prevent context menu on long press for mobile
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+  };
+
   if (!room) return null;
 
   if (room.status === 'waiting') {
@@ -104,26 +145,26 @@ export default function Game() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-100 pb-24 flex flex-col">
+    <div className="min-h-screen bg-neutral-100 pb-6 flex flex-col">
       <header className="bg-white border-b border-neutral-200 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="max-w-4xl mx-auto px-2 sm:px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-1 sm:gap-2">
             <button onClick={() => navigate('/')} className="p-2 -ml-2 text-neutral-500 hover:text-neutral-900">
-              <ArrowLeft size={24} />
+              <ArrowLeft size={20} />
             </button>
             <div className="flex flex-col">
-              <span className="text-xs font-bold text-neutral-400 uppercase">Room {roomId}</span>
-              <span className="text-sm font-medium">{room.board.name}</span>
+              <span className="text-[10px] font-bold text-neutral-400 uppercase leading-tight">Room {roomId}</span>
+              <span className="text-sm font-medium leading-tight">{room.board.name}</span>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button 
               onClick={resetBoard}
               className="p-2 text-neutral-500 hover:text-indigo-600 bg-neutral-50 rounded-full transition-colors"
               title="Reset Marks"
             >
-              <RotateCcw size={20} />
+              <RotateCcw size={18} />
             </button>
             {isHost && (
               <button 
@@ -131,18 +172,18 @@ export default function Game() {
                 className="p-2 text-neutral-500 hover:text-amber-600 bg-neutral-50 rounded-full transition-colors"
                 title="Restart Game"
               >
-                <RefreshCw size={20} />
+                <RefreshCw size={18} />
               </button>
             )}
           </div>
         </div>
       </header>
 
-      <main className="flex-1 max-w-4xl mx-auto w-full p-4 flex flex-col gap-6">
+      <main className="flex-1 max-w-4xl mx-auto w-full p-2 flex flex-col gap-3">
         {/* Secret Character Card */}
-        <div className="flex justify-center">
+        <div className="flex justify-center mt-1">
           <div 
-            className="w-32 h-32 perspective-1000 cursor-pointer"
+            className="w-20 h-20 sm:w-28 sm:h-28 perspective-1000 cursor-pointer"
             onClick={() => setShowCharacter(!showCharacter)}
           >
             <motion.div
@@ -150,22 +191,22 @@ export default function Game() {
               animate={{ rotateY: showCharacter ? 180 : 0 }}
             >
               {/* Front (Hidden) */}
-              <div className="absolute inset-0 backface-hidden bg-indigo-600 rounded-2xl shadow-lg border-4 border-white flex flex-col items-center justify-center text-white p-2 text-center">
-                <span className="text-3xl mb-1">?</span>
-                <span className="text-xs font-bold uppercase tracking-wider">Your<br/>Character</span>
+              <div className="absolute inset-0 backface-hidden bg-indigo-600 rounded-2xl shadow-md border-2 border-white flex flex-col items-center justify-center text-white p-1 text-center">
+                <span className="text-2xl mb-0.5">?</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider leading-tight">Your<br/>Card</span>
               </div>
               
               {/* Back (Revealed) */}
-              <div className="absolute inset-0 backface-hidden bg-white rounded-2xl shadow-lg border-4 border-indigo-500 overflow-hidden flex flex-col rotate-y-180">
+              <div className="absolute inset-0 backface-hidden bg-white rounded-2xl shadow-md border-2 border-indigo-500 overflow-hidden flex flex-col rotate-y-180">
                 {myCharacter?.image ? (
                   <img src={myCharacter.image} alt={myCharacter.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="flex-1 bg-neutral-100 flex items-center justify-center text-neutral-400">
+                  <div className="flex-1 bg-neutral-100 flex items-center justify-center text-neutral-400 text-xs">
                     No Image
                   </div>
                 )}
                 {myCharacter?.name && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs font-bold text-center py-1 truncate px-1">
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] font-bold text-center py-0.5 truncate px-1">
                     {myCharacter.name}
                   </div>
                 )}
@@ -175,26 +216,32 @@ export default function Game() {
         </div>
 
         {/* Game Board */}
-        <div className="bg-white p-2 sm:p-4 rounded-3xl shadow-sm border border-neutral-200">
-          <div className="grid grid-cols-7 gap-1 sm:gap-2 aspect-square">
+        <div className="bg-white p-1.5 sm:p-4 rounded-2xl shadow-sm border border-neutral-200 flex-1 flex flex-col justify-center">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2 w-full max-w-full mx-auto">
             {room.board.slots.map((slot: BoardSlot) => (
               <button
                 key={slot.id}
-                onClick={() => toggleEliminated(slot.id)}
-                className="relative aspect-square rounded-md sm:rounded-xl overflow-hidden border-2 border-neutral-200 transition-all"
+                onPointerDown={() => handlePointerDown(slot)}
+                onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerLeave}
+                onPointerCancel={handlePointerLeave}
+                onClick={() => handleClick(slot)}
+                onContextMenu={handleContextMenu}
+                className="relative aspect-square rounded-lg sm:rounded-xl overflow-hidden border border-neutral-200 transition-all touch-none select-none"
               >
                 {slot.image ? (
                   <img 
                     src={slot.image} 
                     alt={slot.name} 
                     className={`w-full h-full object-cover transition-all duration-300 ${eliminated.has(slot.id) ? 'grayscale opacity-30 scale-95' : ''}`} 
+                    draggable={false}
                   />
                 ) : (
                   <div className={`w-full h-full bg-neutral-50 transition-all duration-300 ${eliminated.has(slot.id) ? 'opacity-30' : ''}`} />
                 )}
                 
                 {slot.name && (
-                  <div className={`absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] sm:text-[10px] truncate px-1 py-0.5 text-center transition-all duration-300 ${eliminated.has(slot.id) ? 'opacity-30' : ''}`}>
+                  <div className={`absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[9px] sm:text-[11px] font-medium truncate px-0.5 py-0.5 text-center transition-all duration-300 ${eliminated.has(slot.id) ? 'opacity-30' : ''}`}>
                     {slot.name}
                   </div>
                 )}
@@ -205,7 +252,7 @@ export default function Game() {
                       initial={{ scale: 0, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0, opacity: 0 }}
-                      className="absolute inset-0 flex items-center justify-center bg-black/20"
+                      className="absolute inset-0 flex items-center justify-center bg-black/10"
                     >
                       <div className="w-full h-1 bg-red-500 rotate-45 absolute" />
                       <div className="w-full h-1 bg-red-500 -rotate-45 absolute" />
@@ -217,6 +264,38 @@ export default function Game() {
           </div>
         </div>
       </main>
+
+      {/* Zoom Modal */}
+      <AnimatePresence>
+        {zoomedSlot && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6 pointer-events-none"
+          >
+            <motion.div
+              initial={{ scale: 0.8, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.8, y: 20 }}
+              className="bg-white rounded-3xl overflow-hidden shadow-2xl max-w-sm w-full border-4 border-white"
+            >
+              {zoomedSlot.image ? (
+                <img src={zoomedSlot.image} alt={zoomedSlot.name} className="w-full aspect-square object-cover" />
+              ) : (
+                <div className="w-full aspect-square bg-neutral-100 flex items-center justify-center text-neutral-400">
+                  No Image
+                </div>
+              )}
+              {zoomedSlot.name && (
+                <div className="bg-white p-4 text-center">
+                  <h3 className="text-2xl font-black text-neutral-900">{zoomedSlot.name}</h3>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
